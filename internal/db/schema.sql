@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS orders (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     product_name TEXT    NOT NULL,
     -- 金额一律用「分」（整数），禁止浮点：NFR-6 红线
-    amount       INTEGER NOT NULL CHECK (amount > 0),
+    -- B2 Bug1 教学注入点：main 分支为 CHECK(amount > 0)；本 b2-bug 分支将其放宽为
+    -- >= 0 以完整复现「0 元订单能创建」；DB 层防线 + 应用层 OrderMinAmount 双放宽。
+    amount       INTEGER NOT NULL CHECK (amount >= 0),
     shipping     INTEGER NOT NULL DEFAULT 0 CHECK (shipping >= 0),
     coupon_used  INTEGER NOT NULL DEFAULT 0 CHECK (coupon_used >= 0),
     status       TEXT    NOT NULL DEFAULT 'paid'
