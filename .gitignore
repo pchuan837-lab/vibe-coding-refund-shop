@@ -1,0 +1,26 @@
+# ---- refund-shop 专属 ----
+data.db
+data.db-journal
+*.db-shm
+*.db-wal
+
+# ---- Go 可执行 ----
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+refund-shop
+refund-shop.exe
+
+# ---- Go 模块缓存 ----
+go.work.sum
+vendor/
+
+# ---- 通用 ----
+.DS_Store
+.idea/
+dist/
+*.log
+test-output.log
+docs/b3-before*.log
