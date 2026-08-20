@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>refund-shop · 下单</title>
+<style>
+  :root { --brand:#4f46e5; --ink:#1f2937; --muted:#6b7280; --bord:#e5e7eb; --bg:#f3f4f6; --ok:#16a34a; --err:#dc2626; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"PingFang SC",sans-serif; margin:0; background:var(--bg); color:var(--ink); }
+  header { background:var(--brand); color:#fff; padding:14px 24px; display:flex; align-items:center; gap:24px; }
+  header a { color:#fff; text-decoration:none; font-weight:600; opacity:.85; }
+  header a.on, header a:hover { opacity:1; }
+  main { max-width:720px; margin:32px auto; padding:0 16px; }
+  .card { background:#fff; border:1px solid var(--bord); border-radius:12px; padding:24px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  h2 { margin:0 0 16px; }
+  label { display:block; margin:14px 0 6px; font-weight:600; font-size:14px; }
+  input, select { width:100%; padding:10px 12px; border:1px solid var(--bord); border-radius:8px; font-size:15px; }
+  .hint { font-size:12px; color:var(--muted); margin-top:4px; }
+  .btn { margin-top:20px; width:100%; padding:12px; background:var(--brand); color:#fff; border:0; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer; }
+  .btn:hover { filter:brightness(1.08); }
+  .msg { padding:12px; border-radius:8px; margin-top:16px; font-size:14px; display:none; }
+  .msg.ok { display:block; background:#f0fdf4; color:var(--ok); border:1px solid #bbf7d0; }
+  .msg.err { display:block; background:#fef2f2; color:var(--err); border:1px solid #fecaca; }
+</style>
+</head>
+<body>
+<header>
+  <span style="font-weight:700;">🛍️ refund-shop</span>
+  <a href="/" class="on">下单</a>
+  <a href="/orders.html">订单 / 申请退款</a>
+  <a href="/admin.html">审核后台</a>
+</header>
+<main>
+  <div class="card">
+    <h2>创建订单</h2>
+    <label>商品名称</label>
+    <input id="name" placeholder="例：保温杯" />
+    <label>商品金额（元）</label>
+    <input id="amount" type="number" step="0.01" min="0" placeholder="例：99.00" />
+    <div class="hint">输入 0.00 再提交，可复现 B2 的 0 元订单漏洞（教学演示）</div>
+    <label>运费（元）</label>
+    <input id="shipping" type="number" step="0.01" min="0" value="0" />
+    <label>用券抵扣（元）</label>
+    <input id="coupon" type="number" step="0.01" min="0" value="0" />
+    <button class="btn" onclick="createOrder()">提交订单</button>
+    <div id="msg" class="msg"></div>
+  </div>
+</main>
+<script>
+  function moneyToCents(v){ const n = Math.round(parseFloat(v||0)*100); return isNaN(n)?0:n; }
+  async function createOrder(){
+    const msg = document.getElementById('msg');
+    const body = {
+      product_name: document.getElementById('name').value.trim() || '未命名商品',
+      amount: moneyToCents(document.getElementById('amount').value),
+      shipping: moneyToCents(document.getElementById('shipping').value),
+      coupon_used: moneyToCents(document.getElementById('coupon').value)
+    };
+    try {
+      const resp = await fetch('/api/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const data = await resp.json();
+      if(resp.ok){ msg.className='msg ok'; msg.textContent = '✅ 下单成功：#' + data.id + '（' + (data.amount/100).toFixed(2) + ' 元，状态 ' + data.status + '）'; }
+      else { msg.className='msg err'; msg.textContent = '❌ ' + (data.error || ('HTTP ' + resp.status)); }
+    } catch(e){ msg.className='msg err'; msg.textContent = '❌ 请求失败：' + e.message; }
+  }
+</script>
+</body>
+</html>

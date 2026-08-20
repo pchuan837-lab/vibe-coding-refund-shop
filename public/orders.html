@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>refund-shop · 订单 / 申请退款</title>
+<style>
+  :root { --brand:#4f46e5; --ink:#1f2937; --muted:#6b7280; --bord:#e5e7eb; --bg:#f3f4f6; --ok:#16a34a; --err:#dc2626; --warn:#d97706; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"PingFang SC",sans-serif; margin:0; background:var(--bg); color:var(--ink); }
+  header { background:var(--brand); color:#fff; padding:14px 24px; display:flex; align-items:center; gap:24px; }
+  header a { color:#fff; text-decoration:none; font-weight:600; opacity:.85; }
+  header a.on, header a:hover { opacity:1; }
+  main { max-width:900px; margin:32px auto; padding:0 16px; }
+  .card { background:#fff; border:1px solid var(--bord); border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  h2 { margin:0 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--bord); }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; font-weight:600; }
+  .paid { background:#eff6ff; color:#1d4ed8; }
+  .partial_refunded { background:#fef3c7; color:var(--warn); }
+  .fully_refunded { background:#f0fdf4; color:var(--ok); }
+  .btn { padding:8px 14px; background:var(--brand); color:#fff; border:0; border-radius:7px; cursor:pointer; font-weight:600; font-size:13px; }
+  .btn:hover { filter:brightness(1.08); }
+  .row { display:flex; gap:10px; align-items:center; height:36px; margin-top:12px; }
+  .row input { flex:1; padding:8px 10px; border:1px solid var(--bord); border-radius:7px; font-size:14px; }
+  .msg { padding:10px; border-radius:8px; margin-top:12px; font-size:13px; display:none; }
+  .msg.ok { display:block; background:#f0fdf4; color:var(--ok); border:1px solid #bbf7d0; }
+  .msg.err { display:block; background:#fef2f2; color:var(--err); border:1px solid #fecaca; }
+</style>
+</head>
+<body>
+<header>
+  <span style="font-weight:700;">🛍️ refund-shop</span>
+  <a href="/">下单</a>
+  <a href="/orders.html" class="on">订单 / 申请退款</a>
+  <a href="/admin.html">审核后台</a>
+</header>
+<main>
+  <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+    <h2 style="margin:0;">订单列表</h2>
+    <button class="btn" onclick="load()">🔄 刷新</button>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>商品</th><th>实付</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="msg" class="msg"></div>
+  </div>
+</main>
+<script>
+  const statusTag = s => `<span class="tag ${s}">${s}</span>`;
+  async function load(){
+    const rows = document.getElementById('rows');
+    try {
+      const resp = await fetch('/api/orders');
+      const list = await resp.json();
+      rows.innerHTML = list.map(o => `
+        <tr>
+          <td>#${o.id}</td><td>${o.product_name}</td>
+          <td>${(o.amount/100).toFixed(2)} 元</td>
+          <td>${statusTag(o.status)}</td>
+          <td><button class="btn" onclick="apply(${o.id}, '${o.product_name.replace(/'/g,"\\'")}', ${o.amount})">申请退款</button></td>
+        </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted)">暂无订单</td></tr>';
+    } catch(e){ rows.innerHTML = '<tr><td colspan="5" style="color:var(--err)">加载失败：' + e.message + '</td></tr>'; }
+  }
+  function apply(id, name, amount){
+    let c = prompt(`为订单 #${id}「${name}」申请退款金额（元，最多 ${(amount/100).toFixed(2)}）`);
+    if(c === null) return;
+    const cents = Math.round(parseFloat(c||0)*100);
+    (async () => {
+      const msg = document.getElementById('msg');
+      try {
+        const resp = await fetch('/api/refunds', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ order_id: id, amount: cents, reason: '顾客主动申请' }) });
+        const data = await resp.json();
+        if(resp.ok){ msg.className='msg ok'; msg.textContent = '✅ 已申请退款 #' + data.id + '，待客服审核（' + (data.amount/100).toFixed(2) + ' 元）'; load(); }
+        else { msg.className='msg err'; msg.textContent = '❌ ' + (data.error || ('HTTP ' + resp.status)); }
+      } catch(e){ msg.className='msg err'; msg.textContent = '❌ 请求失败：' + e.message; }
+    })();
+  }
+  load();
+</script>
+</body>
+</html>

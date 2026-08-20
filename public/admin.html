@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>refund-shop · 审核后台</title>
+<style>
+  :root { --brand:#4f46e5; --ok:#16a34a; --err:#dc2626; --muted:#6b7280; --bord:#e5e7eb; --bg:#f3f4f6; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"PingFang SC",sans-serif; margin:0; background:var(--bg); color:#1f2937; }
+  header { background:var(--brand); color:#fff; padding:14px 24px; display:flex; align-items:center; gap:24px; }
+  header a { color:#fff; text-decoration:none; font-weight:600; opacity:.85; }
+  header a.on, header a:hover { opacity:1; }
+  main { max-width:900px; margin:32px auto; padding:0 16px; }
+  .card { background:#fff; border:1px solid var(--bord); border-radius:12px; padding:24px; margin-bottom:20px; }
+  h2 { margin:0 0 12px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--bord); }
+  th { color:var(--muted); font-weight:600; font-size:13px; }
+  .pending { color:#b45309; font-weight:600; }
+  .approved { color:var(--ok); font-weight:600; }
+  .rejected { color:var(--err); font-weight:600; }
+  .btn { padding:8px 14px; border:0; border-radius:7px; cursor:pointer; font-weight:600; font-size:13px; color:#fff; }
+  .btn.ok { background:var(--ok); }
+  .btn.no { background:var(--err); }
+  .btn:hover { filter:brightness(1.08); }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .msg { padding:10px; border-radius:8px; margin-top:12px; font-size:13px; display:none; }
+  .msg.ok { display:block; background:#f0fdf4; color:var(--ok); border:1px solid #bbf7d0; }
+  .msg.err { display:block; background:#fef2f2; color:var(--err); border:1px solid #fecaca; }
+</style>
+</head>
+<body>
+<header>
+  <span style="font-weight:700;">🛍️ refund-shop</span>
+  <a href="/">下单</a>
+  <a href="/orders.html">订单 / 申请退款</a>
+  <a href="/admin.html" class="on">审核后台</a>
+</header>
+<main>
+  <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+    <h2 style="margin:0;">退款审核（待处理）</h2>
+    <div>
+      <button class="btn ok" onclick="filterAll()">全部</button>
+      <button class="btn" style="background:var(--brand)" onclick="load('pending')">待审核</button>
+    </div>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>退款#</th><th>订单#</th><th>金额</th><th>原因</th><th>状态</th><th>操作</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="msg" class="msg"></div>
+  </div>
+</main>
+<script>
+  let current = 'all';
+  async function load(filter){
+    let url = '/api/refunds';
+    if(filter === 'pending') url += '?status=pending';
+    current = filter;
+    const rows = document.getElementById('rows');
+    try {
+      const resp = await fetch(url);
+      const list = await resp.json();
+      rows.innerHTML = list.map(r => `
+        <tr>
+          <td>#${r.id}</td><td>#${r.order_id}</td>
+          <td>${(r.amount/100).toFixed(2)} 元</td>
+          <td>${r.reason || '—'}</td>
+          <td class="${r.status}">${r.status}</td>
+          <td>${r.status==='pending'
+            ? `<button class="btn ok" onclick="act(${r.id},true)">通过</button> <button class="btn no" onclick="act(${r.id},false)">拒绝</button>`
+            : '<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted)">暂无数据</td></tr>';
+    } catch(e){ rows.innerHTML = '<tr><td colspan="6" style="color:var(--err)">加载失败：' + e.message + '</td></tr>'; }
+  }
+  async function act(id, approved){
+    const msg = document.getElementById('msg');
+    try {
+      const resp = await fetch('/api/refunds/' + id + '/approve', { method:'PATCH', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ approved, comment: approved ? '人工审核通过' : '人工拒绝' }) });
+      const data = await resp.json();
+      if(resp.ok){ msg.className='msg ok'; msg.textContent = '✅ 退款 #' + id + ' 已' + (approved?'通过':'拒绝') + '（现状态 ' + data.status + '）'; load(current); }
+      else { msg.className='msg err'; msg.textContent = '❌ ' + (data.error || ('HTTP ' + resp.status)); }
+    } catch(e){ msg.className='msg err'; msg.textContent = '❌ 请求失败：' + e.message; }
+  }
+  function filterAll(){ load('all'); }
+  load('pending');
+</script>
+</body>
+</html>
