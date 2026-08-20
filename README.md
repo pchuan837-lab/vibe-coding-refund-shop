@@ -40,9 +40,13 @@ Invoke-RestMethod -Uri http://localhost:3000/api/orders -Method Post -Headers $h
 
 ### B2 Bug 修复（需切 b2-bug 分支）
 ```powershell
-git checkout -b b2-bug origin/b2-bug   # 若已提供
+git fetch origin
+git checkout -b b2-bug origin/b2-bug
 ```
-（`b2-bug` 分支目前未发布于本仓库公开分支——需在私有工作流中由讲师下发，见 `GUIDE-LEARN-PATH.md`。）
+`b2-bug` 是本仓库的一个**独立分支**（本地 + 远程均有），相对 main 只新增
+`internal/b2bug/`、放宽 schema、blank-import 注入，预埋了可复现的 2 个 Bug；
+main 分支不 import 该包，始终保持正确（amount=0 → 400）。详情及修复红线见
+`docs/PITFALLS-B2.md`。
 
 ### B3 重构（行为保真，消除坏味道）
 - 坏味道锚点注释已在 `internal/routes/*.go`、`schema.sql`、`refund_rules.go` 标注。
