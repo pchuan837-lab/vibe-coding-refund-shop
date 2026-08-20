@@ -12,6 +12,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	// b2-bug 分支特有：blank import 教学 Bug 注入包触发其 init()，
+	// 从而复现 Bug1/2。main 分支的 main.go 不 import 本包，保持正确行为。
+	_ "refund-shop/internal/b2bug"
 	"refund-shop/internal/db"
 	"refund-shop/internal/routes"
 )
