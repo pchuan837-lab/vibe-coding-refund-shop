@@ -12,6 +12,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// OrderMinAmount 订单金额合法下限（分），默认 1（即 amount>=1 才合法，等价于 amount>0）。
+// B2 教学注入点：b2-bug 分支的 internal/b2bug 包会在 init() 里改它，从而可复现
+// "0 元订单能创建"的 Bug；main 分支不 import 该包，此值保持默认，行为始终正确。
+var OrderMinAmount = 1
+
 // OrderReq 下单请求体。字段名与前端 JSON 严格一致（NFR：金额为「分」）。
 type OrderReq struct {
 	ProductName string `json:"product_name"`
@@ -45,9 +50,9 @@ func createOrder(database *sql.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
 			return
 		}
-		// B2 Bug1 预埋点（orders.go 内）：b2-bug 分支会把下面的边界条件
-		// `<= 0` 故意写成 `< 0`，导致 amount=0 也能创建订单。
-		if req.Amount <= 0 {
+		// B2 Bug1 预埋点（orders.go 内）：b2-bug 分支会通过注入包把 OrderMinAmount
+		// 从默认 1 改成 0，导致 amount=0 也能创建订单。main 分支保持默认(>=1)，行为正确。
+		if req.Amount < OrderMinAmount {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "amount must be > 0 (cents)"})
 			return
 		}

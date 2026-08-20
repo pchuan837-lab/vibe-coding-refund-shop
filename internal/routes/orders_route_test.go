@@ -79,3 +79,17 @@ func TestCreateOrder_NegativeAmount_Returns400(t *testing.T) {
 		t.Fatalf("want amount error msg, got %s", w.Body.String())
 	}
 }
+
+// 0 元订单应被拒绝（main 分支正确行为；此即 B2 Bug1 的防再犯红线，见 PITFALLS-B2 B2-P09）
+func TestCreateOrder_ZeroAmount_Returns400(t *testing.T) {
+	r := newTestRouter(t)
+	w := doJSON(t, r, http.MethodPost, "/api/orders", map[string]any{
+		"product_name": "Free", "amount": 0, "shipping": 0, "coupon_used": 0,
+	})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d body=%s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "amount must be") {
+		t.Fatalf("want amount error msg, got %s", w.Body.String())
+	}
+}

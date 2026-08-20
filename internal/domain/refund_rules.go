@@ -6,6 +6,12 @@ package domain
 
 import "fmt"
 
+// ReverseRefundRemaining 是否让「可退余额」用错误减法。默认 false = 正确行为
+// (remaining = orderAmount - totalRefunded)。
+// B2 教学注入点：b2-bug 分支的 internal/b2bug 包会在 init() 里置 true，从而可复现
+// Bug2「累计退款计算写反」；main 分支不 import 该包，此值保持默认，行为始终正确。
+var ReverseRefundRemaining = false
+
 // ---- B1① 需求模糊点锚点（读者 B1 轨道澄清后要补）----
 // TODO ① 运费怎么退？ 候选：A) 按比例冲抵可退金额  B) 仅全额退才退运费  C) 一律不退
 // TODO ② 用券怎么返？ 候选：A) 按比例返还   B) 仅全额退才返券  C) 一律不返
@@ -34,7 +40,10 @@ func CalcRefundable(orderID int64, orderAmount int, totalRefunded int, applyAmou
 		return 0, fmt.Errorf("order %d negative totalRefunded=%d", orderID, totalRefunded)
 	}
 
-	remaining := orderAmount - totalRefunded // B2 Bug2 预埋：b2-bug 分支会写成 totalRefunded - orderAmount
+	remaining := orderAmount - totalRefunded // B2 Bug2 预埋：b2-bug 分支通过注入包置 ReverseRefundRemaining=true，此时 remaining 变成 totalRefunded - orderAmount
+	if ReverseRefundRemaining {
+		remaining = totalRefunded - orderAmount
+	}
 	if remaining <= 0 {
 		return 0, fmt.Errorf("order %d fully refunded, remaining=%d", orderID, remaining)
 	}
