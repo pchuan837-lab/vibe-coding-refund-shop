@@ -43,18 +43,17 @@ Invoke-RestMethod -Uri http://localhost:3000/api/orders -Method Post -Headers $h
 git fetch origin
 git checkout -b b2-bug origin/b2-bug
 ```
-`b2-bug` 是本仓库的一个**独立分支**（本地 + 远程均有），相对 main 只新增
+`b2-bug` 是本仓库的一个**独立教学分支**（公开分支，本地 + 远程均有），相对 main 只新增
 `internal/b2bug/`、放宽 schema、blank-import 注入，预埋了可复现的 2 个 Bug；
-main 分支不 import 该包，始终保持正确（amount=0 → 400）。详情及修复红线见
-`docs/PITFALLS-B2.md`。
+main 分支不 import 该包，始终保持正确（amount=0 → 400）。
 
 ### B3 重构（行为保真，消除坏味道）
 - 坏味道锚点注释已在 `internal/routes/*.go`、`schema.sql`、`refund_rules.go` 标注。
 
-### 阅卷 / 查漏（练习后）
-- AI 阅卷提示词：`docs/PROMPT-AI-REVIEWER.md`
-- 人工查漏 58 条：`docs/CHECKLIST-AFTER-DOING.md`
-- ⚠️ 答案本 `docs/PITFALLS-B1/B2/B3.md` **练习前严禁打开**（公开前请移除）。
+### 阅卷 / 查漏（练习后，切 solutions 分支）
+- AI 阅卷提示词：`docs/PROMPT-AI-REVIEWER.md`（本分支仍可打开）
+- 人工查漏 58 条 + 三条轨道答案本：切到 `solutions` 分支查看
+  （⚠️ 练习完成前严禁提前切 solutions，否则泄题自废练习价值）
 
 ---
 
@@ -65,7 +64,7 @@ internal/routes/       HTTP 层（orders/refunds 6 端点）
 internal/domain/       退款纯函数 CalcRefundable
 internal/db/           schema.sql + db.go
 public/                三页前端
-docs/                  教学配套文档（14 份）
+docs/                  教学配套文档（10 份）；阅卷/答案见 solutions 分支
 ```
 Go 1.21+ · Gin · modernc.org/sqlite（零 CGO）· 详见 `docs/ADR-001-tech-stack.md`。
 
