@@ -1,6 +1,6 @@
 // Package domain 放置退款金额纯函数规则。
 //
-// 说明：CalcRefundable 是本教学项目的核心规则，刻意保留大量可重构的 if-else
+// 说明：CalcRemaining 是本教学项目的核心规则，刻意保留大量可重构的 if-else
 // 结构（B3 坏味道 3），并在顶部预埋 3 处 B1① 需求模糊点。
 package domain
 
@@ -18,7 +18,7 @@ var ReverseRefundRemaining = false
 // TODO ③ 申请超额怎么办？ 默认实现了策略 A（截断退剩余）；候选 B（整笔拒绝报错）
 // ---- 锚点结束 ----
 
-// CalcRefundable 计算某订单本次申请退款时可批准的金额。
+// CalcRemaining 计算某订单本次申请退款时可批准的金额。
 //
 // 参数（4 个，B3-P07 保真：签名不可改）：
 //   - orderID:     订单 id（无效返回错误）
@@ -29,7 +29,7 @@ var ReverseRefundRemaining = false
 // 返回（2 个）：
 //   - int:  可批准金额（分）；策略 A 下若申请超额则截断为剩余可退额
 //   - error: nil 表示可批准；否则为业务拒绝原因
-func CalcRefundable(orderID int64, orderAmount int, totalRefunded int, applyAmount int) (int, error) {
+func CalcRemaining(orderID int64, orderAmount int, totalRefunded int, applyAmount int) (int, error) {
 	if orderAmount <= 0 {
 		return 0, fmt.Errorf("order %d invalid amount=%d", orderID, orderAmount)
 	}

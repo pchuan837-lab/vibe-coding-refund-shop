@@ -17,7 +17,7 @@ type querier interface {
 }
 
 // validateAndOccupyQuota 在事务内重验退款额度（C-04 公共函数）。
-// 查订单实付 + 累计已批 → CalcRefundable → 返回可批金额 / 错误。
+// 查订单实付 + 累计已批 → CalcRemaining → 返回可批金额 / 错误。
 // createRefund（申请=预占）与 approveRefund（审批=重验，最后闸门）均调用，
 // 但语义差分：申请时返回值用于写入退款单金额；审批时仅判 err + approved<amount 防并发超退。
 func validateAndOccupyQuota(tx *sql.Tx, orderID int64, applyAmount int) (int, error) {
@@ -31,7 +31,7 @@ func validateAndOccupyQuota(tx *sql.Tx, orderID int64, applyAmount int) (int, er
 	).Scan(&totalRefunded); err != nil {
 		return 0, err
 	}
-	approved, err := domain.CalcRefundable(orderID, orderAmount, totalRefunded, applyAmount)
+	approved, err := domain.CalcRemaining(orderID, orderAmount, totalRefunded, applyAmount)
 	if err != nil {
 		return 0, ErrQuotaExceeded // 超限 = 预期业务错误（→400）
 	}
