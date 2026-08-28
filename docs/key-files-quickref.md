@@ -10,7 +10,7 @@
 | 后端入口 | `main.go` | 装配：连库→建路由→挂静态 | `go run .` 第一行；端口 3000 |
 | 订单 | `internal/routes/orders.go` | `POST/GET /api/orders`、`GET /api/orders/:id` | 前端下单页 `index.html` |
 | 退款 | `internal/routes/refunds.go` | `POST/GET /api/refunds`、`PATCH /api/refunds/:id/approve` | 前端订单页 `orders.html` / 审核页 `admin.html` |
-| 规则 | `internal/domain/refund_rules.go` | `CalcRefundable` 纯函数，算可退金额 | 被 `refunds.go` 的申请退款调用 |
+| 规则 | `internal/domain/refund_rules.go` | `CalcRemaining` 纯函数，算可退金额 | 被 `refunds.go` 的申请退款调用 |
 | 数据 | `internal/db/db.go` + `schema.sql` | 打开 SQLite、建 `orders/refunds` 两表 | 所有路由的写操作 |
 
 ## 一句话承诺卡

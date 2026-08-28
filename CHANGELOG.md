@@ -7,7 +7,7 @@
 - 后端 6 条 REST 接口：下单 / 订单列表 / 订单详情 / 申请退款 / 退款列表 / 审批退款。
 - 三页前端（下单页 / 订单页 / 审核页），由 `main.go` `go:embed` 打包，单进程起全栈。
 - SQLite 持久化（`orders` / `refunds` 两表 + CHECK 约束）。
-- 退款纯函数 `CalcRefundable`（用量分制）。
+- 退款纯函数 `CalcRemaining`（用量分制）。
 - 测试 9 条（`internal/domain` 7 + `internal/routes` 2），覆盖率约 53.7%。
 - 教学配套文档 14 份（spec + code-map/key-files/B1 六样本/阅卷四件套/PROMPT/CHECKLIST 等）。
 

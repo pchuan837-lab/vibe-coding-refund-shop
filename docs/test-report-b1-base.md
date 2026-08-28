@@ -9,7 +9,7 @@
 - 下单：POST `/api/orders`（含 0/负数/超大金额边界）。
 - 退款申请：POST `/api/refunds`（amount ≤ 订单可退额）。
 - 退款审批：PATCH `/api/refunds/:id/approve`（通过→订单状态联动）。
-- 纯函数 `CalcRefundable`：正常 / 已 part 部分退 / 超可退额 / 一次退满。
+- 纯函数 `CalcRemaining`：正常 / 已 part 部分退 / 超可退额 / 一次退满。
 
 ## 2. 用例代码
 （贴你的测试用例代码 / 或写明引用了哪个 `_test.go`）
