@@ -6,7 +6,6 @@ package routes
 
 import (
 	"database/sql"
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -47,17 +46,17 @@ func createOrder(database *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req OrderReq
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
+			respondBadRequest(c, "invalid request: "+err.Error())
 			return
 		}
 		// B2 Bug1 预埋点（orders.go 内）：b2-bug 分支会通过注入包把 OrderMinAmount
 		// 从默认 1 改成 0，导致 amount=0 也能创建订单。main 分支保持默认(>=1)，行为正确。
 		if req.Amount < OrderMinAmount {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "amount must be > 0 (cents)"})
+			respondBadRequest(c, "amount must be > 0 (cents)")
 			return
 		}
 		if req.ProductName == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "product_name must not be empty"})
+			respondBadRequest(c, "product_name must not be empty")
 			return
 		}
 
@@ -66,16 +65,16 @@ func createOrder(database *sql.DB) gin.HandlerFunc {
 			req.ProductName, req.Amount, req.Shipping, req.CouponUsed,
 		)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 		id, _ := res.LastInsertId()
 		o, err := fetchOrder(database, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
-		c.JSON(http.StatusOK, o)
+		respondOK(c, o)
 	}
 }
 
@@ -95,7 +94,7 @@ func listOrders(database *sql.DB) gin.HandlerFunc {
 			GROUP BY o.id
 			ORDER BY o.created_at DESC, o.id DESC`)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 		defer rows.Close()
@@ -104,12 +103,12 @@ func listOrders(database *sql.DB) gin.HandlerFunc {
 		for rows.Next() {
 			var o Order
 			if err := rows.Scan(&o.ID, &o.ProductName, &o.Amount, &o.Shipping, &o.CouponUsed, &o.Status, &o.CreatedAt); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+				respondInternalError(c)
 				return
 			}
 			orders = append(orders, o)
 		}
-		c.JSON(http.StatusOK, orders)
+		respondOK(c, orders)
 	}
 }
 
@@ -125,20 +124,20 @@ func getOrderDetail(database *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid order id"})
+			respondBadRequest(c, "invalid order id")
 			return
 		}
 		o, err := fetchOrder(database, id)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
+			respondNotFound(c, "order not found")
 			return
 		}
 		refunds, err := fetchRefundsByOrder(database, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"order": o, "refunds": refunds})
+		respondOK(c, gin.H{"order": o, "refunds": refunds})
 	}
 }
 

@@ -3,7 +3,6 @@ package routes
 import (
 	"database/sql"
 	"errors"
-	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -25,14 +24,18 @@ func validateAndOccupyQuota(tx *sql.Tx, orderID int64, applyAmount int) (int, er
 	var orderAmount, totalRefunded int
 	err := tx.QueryRow("SELECT amount FROM orders WHERE id = ?", orderID).Scan(&orderAmount)
 	if err != nil {
-		return 0, err // sql.ErrNoRows 或其他
+		return 0, err // sql.ErrNoRows 或其他 DB 错误
 	}
 	if err := tx.QueryRow(
 		"SELECT COALESCE(SUM(amount),0) FROM refunds WHERE order_id = ? AND status='approved'", orderID,
 	).Scan(&totalRefunded); err != nil {
 		return 0, err
 	}
-	return domain.CalcRefundable(orderID, orderAmount, totalRefunded, applyAmount)
+	approved, err := domain.CalcRefundable(orderID, orderAmount, totalRefunded, applyAmount)
+	if err != nil {
+		return 0, ErrQuotaExceeded // 超限 = 预期业务错误（→400）
+	}
+	return approved, nil
 }
 
 // RefundReq 申请退款请求体。
@@ -65,11 +68,11 @@ func createRefund(database *sql.DB) gin.HandlerFunc {
 		// ③ 三段式重复样板（B3 坏味道 1 锚点）
 		var req RefundReq
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
+			respondBadRequest(c, "invalid request: "+err.Error())
 			return
 		}
 		if req.Amount <= 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "refund amount must be > 0 (cents)"})
+			respondBadRequest(c, "refund amount must be > 0 (cents)")
 			return
 		}
 
@@ -77,7 +80,7 @@ func createRefund(database *sql.DB) gin.HandlerFunc {
 		// BeginTx 即取写锁，防并发超退/Lost Update）。
 		tx, err := database.BeginTx(c.Request.Context(), nil)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 		defer tx.Rollback() // commit 后 noop
@@ -86,9 +89,11 @@ func createRefund(database *sql.DB) gin.HandlerFunc {
 		approved, err := validateAndOccupyQuota(tx, req.OrderID, req.Amount)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				c.JSON(http.StatusNotFound, gin.H{"error": "order not found"})
+				respondNotFound(c, "order not found")
+			} else if errors.Is(err, ErrQuotaExceeded) {
+				respondQuotaExceeded(c)
 			} else {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "refund amount exceeds refundable quota"})
+				respondInternalError(c)
 			}
 			return
 		}
@@ -98,21 +103,21 @@ func createRefund(database *sql.DB) gin.HandlerFunc {
 			req.OrderID, approved, req.Reason,
 		)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 		id, _ := res.LastInsertId()
 		rf, err := fetchRefund(tx, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 
 		if err := tx.Commit(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
-		c.JSON(http.StatusOK, rf)
+		respondOK(c, rf)
 	}
 }
 
@@ -141,7 +146,7 @@ func listRefunds(database *sql.DB) gin.HandlerFunc {
 
 		rows, err := database.Query(q, args...)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 		defer rows.Close()
@@ -150,12 +155,12 @@ func listRefunds(database *sql.DB) gin.HandlerFunc {
 		for rows.Next() {
 			var rf Refund
 			if err := rows.Scan(&rf.ID, &rf.OrderID, &rf.Amount, &rf.Status, &rf.Reason, &rf.CreatedAt, &rf.UpdatedAt); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+				respondInternalError(c)
 				return
 			}
 			refunds = append(refunds, rf)
 		}
-		c.JSON(http.StatusOK, refunds)
+		respondOK(c, refunds)
 	}
 }
 
@@ -169,19 +174,19 @@ func approveRefund(database *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid refund id"})
+			respondBadRequest(c, "invalid refund id")
 			return
 		}
 		var req ApproveReq
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
+			respondBadRequest(c, "invalid request: "+err.Error())
 			return
 		}
 
 		// C-06：审批包进事务，原子更新防 TOCTOU。
 		tx, err := database.BeginTx(c.Request.Context(), nil)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 		defer tx.Rollback()
@@ -191,7 +196,7 @@ func approveRefund(database *sql.DB) gin.HandlerFunc {
 		var amount int
 		err = tx.QueryRow("SELECT order_id, amount FROM refunds WHERE id = ?", id).Scan(&orderID, &amount)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "refund not found"})
+			respondNotFound(c, "refund not found")
 			return
 		}
 
@@ -200,12 +205,18 @@ func approveRefund(database *sql.DB) gin.HandlerFunc {
 			// C-04：审批=重验额度（最后闸门），不信任创建时算好的结果。
 			approved, err := validateAndOccupyQuota(tx, orderID, amount)
 			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "refund amount exceeds refundable quota"})
+				if errors.Is(err, sql.ErrNoRows) {
+					respondNotFound(c, "order not found")
+				} else if errors.Is(err, ErrQuotaExceeded) {
+					respondQuotaExceeded(c)
+				} else {
+					respondInternalError(c)
+				}
 				return
 			}
 			// approved < amount 说明期间有并发批准导致额度减少，无法全额批。
 			if approved < amount {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "refund amount exceeds refundable quota"})
+				respondQuotaExceeded(c)
 				return
 			}
 			newStatus = "approved"
@@ -218,29 +229,29 @@ func approveRefund(database *sql.DB) gin.HandlerFunc {
 			"UPDATE refunds SET status = ?, updated_at = datetime('now') WHERE id = ? AND status = 'pending'",
 			newStatus, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 		rows, _ := res.RowsAffected()
 		if rows == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "refund already processed"})
+			respondBadRequest(c, "refund already processed")
 			return
 		}
 
 		// C-07：删 syncOrderStatus——订单状态由查询时聚合推导，不再写入。
 
 		if err := tx.Commit(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
 
 		// commit 后用 database 读返回。
 		rf, err := fetchRefund(database, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+			respondInternalError(c)
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{
+		respondOK(c, gin.H{
 			"id":         rf.ID,
 			"order_id":   rf.OrderID,
 			"status":     rf.Status,
