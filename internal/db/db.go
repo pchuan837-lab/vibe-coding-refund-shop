@@ -18,7 +18,15 @@ var schemaFS embed.FS
 // NewDB 打开 SQLite 连接并执行 schema.sql 建表。
 // path 传 ":memory:" 可得到隔离的内存库（测试用），传文件路径则为磁盘库。
 func NewDB(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite", path)
+	// SQLite 事务锁模式只认 DSN 参数 _txlock，驱动会无视 TxOptions.Isolation；
+	// 落为 deferred 则写锁延迟到首次写才取，资金链路"读-算-写"并发会 Lost Update，故统一 immediate。
+	dsn := path
+	if path == ":memory:" {
+		dsn = "file::memory:?_txlock=immediate"
+	} else {
+		dsn += "?_txlock=immediate"
+	}
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite %s: %w", path, err)
 	}

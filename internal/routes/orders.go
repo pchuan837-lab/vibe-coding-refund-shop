@@ -66,13 +66,13 @@ func createOrder(database *sql.DB) gin.HandlerFunc {
 			req.ProductName, req.Amount, req.Shipping, req.CouponUsed,
 		)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
 		}
 		id, _ := res.LastInsertId()
 		o, err := fetchOrder(database, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
 		}
 		c.JSON(http.StatusOK, o)
@@ -81,11 +81,21 @@ func createOrder(database *sql.DB) gin.HandlerFunc {
 
 func listOrders(database *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// C-07：订单状态由聚合推导（LEFT JOIN refunds + SUM），不再读可变 status 列。
 		rows, err := database.Query(
-			"SELECT id, product_name, amount, shipping, coupon_used, status, created_at" +
-				" FROM orders ORDER BY created_at DESC, id DESC")
+			`SELECT o.id, o.product_name, o.amount, o.shipping, o.coupon_used,
+				CASE
+					WHEN COALESCE(SUM(r.amount), 0) >= o.amount THEN 'fully_refunded'
+					WHEN COALESCE(SUM(r.amount), 0) > 0 THEN 'partial_refunded'
+					ELSE 'paid'
+				END AS computed_status,
+				o.created_at
+			FROM orders o
+			LEFT JOIN refunds r ON r.order_id = o.id AND r.status = 'approved'
+			GROUP BY o.id
+			ORDER BY o.created_at DESC, o.id DESC`)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
 		}
 		defer rows.Close()
@@ -94,7 +104,7 @@ func listOrders(database *sql.DB) gin.HandlerFunc {
 		for rows.Next() {
 			var o Order
 			if err := rows.Scan(&o.ID, &o.ProductName, &o.Amount, &o.Shipping, &o.CouponUsed, &o.Status, &o.CreatedAt); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 				return
 			}
 			orders = append(orders, o)
@@ -125,7 +135,7 @@ func getOrderDetail(database *sql.DB) gin.HandlerFunc {
 		}
 		refunds, err := fetchRefundsByOrder(database, id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"order": o, "refunds": refunds})
@@ -134,9 +144,19 @@ func getOrderDetail(database *sql.DB) gin.HandlerFunc {
 
 func fetchOrder(database *sql.DB, id int64) (*Order, error) {
 	var o Order
+	// C-07：聚合推导订单状态，不再读可变 status 列。
 	err := database.QueryRow(
-		"SELECT id, product_name, amount, shipping, coupon_used, status, created_at"+
-			" FROM orders WHERE id = ?", id).
+		`SELECT o.id, o.product_name, o.amount, o.shipping, o.coupon_used,
+			CASE
+				WHEN COALESCE(SUM(r.amount), 0) >= o.amount THEN 'fully_refunded'
+				WHEN COALESCE(SUM(r.amount), 0) > 0 THEN 'partial_refunded'
+				ELSE 'paid'
+			END AS computed_status,
+			o.created_at
+		FROM orders o
+		LEFT JOIN refunds r ON r.order_id = o.id AND r.status = 'approved'
+		WHERE o.id = ?
+		GROUP BY o.id`, id).
 		Scan(&o.ID, &o.ProductName, &o.Amount, &o.Shipping, &o.CouponUsed, &o.Status, &o.CreatedAt)
 	if err != nil {
 		return nil, err
