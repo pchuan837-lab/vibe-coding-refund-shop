@@ -1,6 +1,8 @@
 # refund-shop · 售后退款教学项目
 
 > 《Vibe Coding 工程化》教程的配套教学项目：用最少的命令跑起来的全栈 Web，用于对照练习 **S-A / B1/B2/B3 / S-B/S-C** 三章工作流。
+> 
+> **源码位置**：本仓库（`refund-shop`）`main` 分支即教学基线代码；B2 练习切 `b2-bug`、B3 切 `b3`、答案对照切 `solutions`（详见下方「三条练习轨道入口」）。
 
 ## 新手 3 句话设计卡
 - **数据放哪** → SQLite（`schema.sql` 建表 + `internal/db/db.go` 连库）。
@@ -8,6 +10,11 @@
 - **坑在哪** → 金额一律用**分**存整数（别用浮点）；`CHECK(amount>0)` 约束别删；测试用 `:memory:` 别污染 `data.db`。
 
 ---
+
+## 〇、前置条件（非技术读者请先确认）
+- 已装 **Go 1.21+**（命令行验证：`go version` 有版本号输出）
+- 已装 **Git**（命令行验证：`git --version` 有版本号输出）
+- 已 clone 本仓库到本地
 
 ## 一、3 条命令启动（新克隆验收线）
 ```powershell
@@ -41,10 +48,9 @@ Invoke-RestMethod -Uri http://localhost:3000/api/orders -Method Post -Headers $h
 ### B2 Bug 修复（需切 b2-bug 分支）
 ```powershell
 git fetch origin
-git checkout -b b2-bug origin/b2-bug
+git checkout b2-bug
 ```
-`b2-bug` 是本仓库的一个**独立教学分支**（公开分支，本地 + 远程均有），相对 main 只新增
-`internal/b2bug/`、放宽 schema、blank-import 注入，预埋了可复现的 2 个 Bug；
+`b2-bug` 是**公开教学分支**，相对 main 只新增 `internal/b2bug/` 注入包，预埋 2 个可复现 Bug；
 main 分支不 import 该包，始终保持正确（amount=0 → 400）。
 
 ### B3 重构（行为保真，消除坏味道）
