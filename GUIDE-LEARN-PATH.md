@@ -25,10 +25,10 @@
 
 ## PART 3 · B2 Bug 修复（切 b2-bug 分支）
 - **目标**：修掉预埋的两个可复现 Bug。
-- **前置**：本仓库 main 目前已修复（教学基线）；b2-bug 分支由讲师私有分发/下发。
+- **前置**：本仓库 main 目前已修复（教学基线）；b2-bug 是公开教学分支，学员 `git checkout b2-bug` 直接切过去练习。
 - **步骤**：红测试→修→绿→防再犯测试→最小 diff。
 - **自检**：`docs/PITFALLS-B2.md` + AI-REVIEWER。
-- **完成后必做**：把 b2-bug 合并回 dev/main（`git checkout dev; git merge b2-bug`）。
+- **完成后必做**：在 b2-bug 分支跑 `go test ./...` 全绿 → 对比 `solutions` 分支公开答案自查（`git checkout solutions`）。
 
 ## PART 4 · B3 重构（行为保真）
 - **目标**：在**契约完全不变**前提下消除 3 个坏味道（Handler 重复样板 / Schema 单文件两表 / 规则超长函数）。
