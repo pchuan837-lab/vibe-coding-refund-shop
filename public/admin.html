@@ -54,6 +54,8 @@
   </div>
 </main>
 <script>
+  // C-02：统一 HTML 转义函数，防 XSS。
+  const escapeHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   let current = 'all';
   async function load(filter){
     let url = '/api/refunds';
@@ -67,13 +69,13 @@
         <tr>
           <td>#${r.id}</td><td>#${r.order_id}</td>
           <td>${(r.amount/100).toFixed(2)} 元</td>
-          <td>${r.reason || '—'}</td>
-          <td class="${r.status}">${r.status}</td>
+          <td>${escapeHtml(r.reason || '—')}</td>
+          <td class="${escapeHtml(r.status)}">${escapeHtml(r.status)}</td>
           <td>${r.status==='pending'
             ? `<button class="btn ok" onclick="act(${r.id},true)">通过</button> <button class="btn no" onclick="act(${r.id},false)">拒绝</button>`
             : '<span style="color:var(--muted)">—</span>'}</td>
         </tr>`).join('') || '<tr><td colspan="6" style="color:var(--muted)">暂无数据</td></tr>';
-    } catch(e){ rows.innerHTML = '<tr><td colspan="6" style="color:var(--err)">加载失败：' + e.message + '</td></tr>'; }
+    } catch(e){ rows.innerHTML = '<tr><td colspan="6" style="color:var(--err)">加载失败：' + escapeHtml(e.message) + '</td></tr>'; }
   }
   async function act(id, approved){
     const msg = document.getElementById('msg');

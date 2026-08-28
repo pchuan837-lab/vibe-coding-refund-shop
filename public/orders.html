@@ -51,7 +51,9 @@
   </div>
 </main>
 <script>
-  const statusTag = s => `<span class="tag ${s}">${s}</span>`;
+  // C-02：统一 HTML 转义函数，防 XSS。
+  const escapeHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const statusTag = s => `<span class="tag ${escapeHtml(s)}">${escapeHtml(s)}</span>`;
   async function load(){
     const rows = document.getElementById('rows');
     try {
@@ -59,12 +61,12 @@
       const list = await resp.json();
       rows.innerHTML = list.map(o => `
         <tr>
-          <td>#${o.id}</td><td>${o.product_name}</td>
+          <td>#${o.id}</td><td>${escapeHtml(o.product_name)}</td>
           <td>${(o.amount/100).toFixed(2)} 元</td>
           <td>${statusTag(o.status)}</td>
-          <td><button class="btn" onclick="apply(${o.id}, '${o.product_name.replace(/'/g,"\\'")}', ${o.amount})">申请退款</button></td>
+          <td><button class="btn" data-id="${o.id}" data-name="${escapeHtml(o.product_name)}" data-amount="${o.amount}">申请退款</button></td>
         </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted)">暂无订单</td></tr>';
-    } catch(e){ rows.innerHTML = '<tr><td colspan="5" style="color:var(--err)">加载失败：' + e.message + '</td></tr>'; }
+    } catch(e){ rows.innerHTML = '<tr><td colspan="5" style="color:var(--err)">加载失败：' + escapeHtml(e.message) + '</td></tr>'; }
   }
   function apply(id, name, amount){
     let c = prompt(`为订单 #${id}「${name}」申请退款金额（元，最多 ${(amount/100).toFixed(2)}）`);
@@ -81,6 +83,12 @@
       } catch(e){ msg.className='msg err'; msg.textContent = '❌ 请求失败：' + e.message; }
     })();
   }
+  // C-02：事件委托替代 onclick 内联，product_name 经 escapeHtml 后放 data-* 属性。
+  document.getElementById('rows').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-id]');
+    if(!btn) return;
+    apply(+btn.dataset.id, btn.dataset.name, +btn.dataset.amount);
+  });
   load();
 </script>
 </body>
