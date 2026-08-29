@@ -18,7 +18,7 @@
 - **验收**：能对着 air 说清「架构/模块/入口/数据/依赖」+ 指出风险。
 - 产出：口头/一页笔记即可，不落盘。
 
-## PART 2 · B1 需求澄清（main 分支已具备）
+## PART 2 · B1 需求澄清（b1 分支已具备）
 - **目标**：把 refund-shop 的模糊点澄清成可验收需求。
 - **输入**：原始需求话术（见 spec 附录-C 或教程给定）。
 - **步骤**① 定位 3 个模糊点（运费退法/用券返法/超额策略）→ ② 写 `design-skeleton.md` 七段 → ③ `ADR-001` → ④ 定每点验收 → ⑤ 分步实现 → ⑥ 复盘。
@@ -32,7 +32,8 @@
 - **自检**：`docs/PITFALLS-B2.md` + AI-REVIEWER。
 - **完成后必做**：在 b2-bug 分支跑 `go test ./...` 全绿 → 对比 `solutions` 分支公开答案自查（`git checkout solutions`）。
 
-## PART 4 · B3 重构（行为保真）
+## PART 4 · B3 重构（行为保真，切 main 分支练习）
+- **开始前**：git checkout main（B3 的坏味道锚点在已修复基线 main 分支；b3 分支已废弃/保留参考、勿用于 B3 练习）。
 - **目标**：在**契约完全不变**前提下消除 3 个坏味道（Handler 重复样板 / Schema 单文件两表 / 规则超长函数）。
 - **铁律**：`api-reference.md` 与 `*_test.go` **diff 必须为空**；覆盖率不下滑；9 测试全绿。
 - **流程**：重构→跑 `api-reference diff` 空→`go test` 绿→`go vet` 净→AI 复核保真。

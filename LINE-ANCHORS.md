@@ -19,8 +19,8 @@
 | GUIDE-LEARN-PATH.md | L33 | PART 3 · 完成后必做 / "对比 solutions 公开答案" |
 | README.md | L5 | 顶部描述区 / "源码位置" blockquote |
 | README.md | L14-17 | ## 〇 前置条件（Go 1.21+ / Git / clone）|
-| README.md | L51 | ### B2 Bug 修复 / `git checkout b2-bug` |
-| README.md | L53-54 | ### B2 Bug 修复 / b2-bug 表述 |
+| README.md | L52 | ### B2 Bug 修复 / `git checkout b2-bug` |
+| README.md | L54-55 | ### B2 Bug 修复 / b2-bug 表述 |
 
 ---
 
@@ -30,7 +30,7 @@
 |---|---|---|
 | GUIDE-LEARN-PATH.md | L28 | `## PART 3 · B2 Bug 修复（切 b2-bug 分支）` |
 | README.md | L14 | `## 〇、前置条件（非技术读者请先确认）` |
-| README.md | L48 | `### B2 Bug 修复（需切 b2-bug 分支）` |
+| README.md | L49 | `### B2 Bug 修复（需切 b2-bug 分支）` |
 
 ---
 
