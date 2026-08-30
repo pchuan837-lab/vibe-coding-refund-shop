@@ -24,11 +24,11 @@ go test -count=1 -cover ./...
 ```
 ___
 ```
-（期望：`internal/domain` + `internal/routes` 两行 ok，覆盖率落在 40–60%。）
+（期望：`internal/domain` + `internal/routes` 两行 ok；routes 覆盖率落在 40–60%（当前 51.2%），domain 覆盖率允许更高（当前 85.7%）。）
 
 ## 4. 回归结论
 - [ ] 既有功能无回归（`go test ./...` 全绿）
-- [ ] 覆盖率区间达成
+- [ ] routes 覆盖率教学区间达成（domain 允许更高）
 - [ ] 结论：___
 
 ---
