@@ -5,7 +5,7 @@
 > **源码位置**：本仓库（`refund-shop`）`main` 分支即教学基线代码；B1 练习切 `b1`、B2 练习切 `b2-bug`、B3 练习切 `main`（已修复基线）、答案对照切 `solutions`；历史分支 `b3` 已废弃/保留参考、勿用于练习（详见下方「三条练习轨道入口」）。
 
 ## 新手 3 句话设计卡
-- **数据放哪** → SQLite（`schema.sql` 建表 + `internal/db/db.go` 连库）。
+- **数据放哪** → SQLite（`internal/db/schema.sql` 建表 + `internal/db/db.go` 连库）。
 - **入口在哪** → `main.go`，一条 `go run .` 起全栈（后端 + 三页前端，同端口 3000）。
 - **坑在哪** → 金额一律用**分**存整数（别用浮点）；`CHECK(amount>0)` 约束别删；测试用 `:memory:` 别污染 `data.db`。
 
@@ -56,7 +56,7 @@ main 分支不 import 该包，始终保持正确（amount=0 → 400）。
 
 ### B3 重构（行为保真，消除坏味道，切 main 分支练习）
 - 开始前：`git checkout main`（`b3` 分支已废弃/保留参考、勿用于 B3 练习）。
-- 坏味道锚点注释已在 `internal/routes/*.go`、`schema.sql`、`refund_rules.go` 标注。
+- 坏味道锚点注释已在 `internal/routes/*.go`、`internal/db/schema.sql`、`refund_rules.go` 标注。
 
 ### 阅卷 / 查漏（练习后，切 solutions 分支）
 - AI 阅卷提示词：`docs/PROMPT-AI-REVIEWER.md`（本分支仍可打开）
