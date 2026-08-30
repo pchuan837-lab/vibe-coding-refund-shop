@@ -24,3 +24,7 @@ dist/
 *.log
 test-output.log
 docs/b3-before*.log
+
+# ---- Go 覆盖率产物 ----
+cover
+cover.out

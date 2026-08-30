@@ -3,7 +3,7 @@
 > 《Vibe Coding 工程化》教程的配套教学项目：用最少的命令跑起来的全栈 Web，用于对照练习 **S-A / B1/B2/B3 / S-B/S-C** 三章工作流。
 
 ## 新手 3 句话设计卡
-- **数据放哪** → SQLite（`schema.sql` 建表 + `internal/db/db.go` 连库）。
+- **数据放哪** → SQLite（`internal/db/schema.sql` 建表 + `internal/db/db.go` 连库）。
 - **入口在哪** → `main.go`，一条 `go run .` 起全栈（后端 + 三页前端，同端口 3000）。
 - **坑在哪** → 金额一律用**分**存整数（别用浮点）；`CHECK(amount>0)` 约束别删；测试用 `:memory:` 别污染 `data.db`。
 
@@ -48,7 +48,7 @@ git checkout -b b2-bug origin/b2-bug
 main 分支不 import 该包，始终保持正确（amount=0 → 400）。
 
 ### B3 重构（行为保真，消除坏味道）
-- 坏味道锚点注释已在 `internal/routes/*.go`、`schema.sql`、`refund_rules.go` 标注。
+- 坏味道锚点注释已在 `internal/routes/*.go`、`internal/db/schema.sql`、`refund_rules.go` 标注。
 
 ### 阅卷 / 查漏（练习后，切 solutions 分支）
 - AI 阅卷提示词：`docs/PROMPT-AI-REVIEWER.md`（本分支仍可打开）
