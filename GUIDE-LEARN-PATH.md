@@ -47,5 +47,5 @@
 ---
 
 ## 通关自检总清单
-做完 B1/B2/B3 后：跑 `docs/CHECKLIST-AFTER-DOING.md`（58 条），填完成声明。
+做完 B1/B2/B3 后：切到 `solutions` 分支，跑 `docs/CHECKLIST-AFTER-DOING.md`（58 条，该清单放在 solutions 分支，main 上不存在），填完成声明。
 若超过 40 条达标且章内结论为 💪，即可宣称通关；否则按「漏了去哪补线索」返工。

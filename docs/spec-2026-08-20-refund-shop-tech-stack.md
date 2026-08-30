@@ -94,7 +94,7 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
 - **FR-6.3**：`NewDB(path)` 连接 SQLite，path=`":memory:"` 走内存库（测试用），path=`"data.db"` 走文件库；启动时自动执行 `schema.sql` 建表，表存在则跳过。
 
 ### 3.7 B2 预埋 Bug（FR-7 · 仅 b2-bug 分支，1B 方案：独立 bug 注入文件）
-- **FR-7.1 Bug1：0 元订单能创建** → b2-bug 分支新增 `internal/b2bug/inject.go`，在 `init()` 里通过全局变量把 orders 金额校验阈值从 `<= 0` 改成 `< 0`；main 分支不 import 这个包
+- **FR-7.1 Bug1：0 元订单能创建** → b2-bug 分支新增 `internal/b2bug/inject.go`，在 `init()` 里通过全局变量把 `routes.OrderMinAmount` 从默认 `1` 改成 `0`（金额校验为 `req.Amount < OrderMinAmount`，即合法门槛降到 0 分）；main 分支不 import 这个包
 - **FR-7.2 Bug2：累计退款计算写反** → `CalcRefundable` 计算 `remaining` 的那一行被 bug 注入改成 `refunded - orderAmount`
 - **FR-7.3**：main 分支代码本身是正确的；切到 b2-bug 后才通过独立包引入 Bug，符合「Bug 是上线后引入的」真实职场心智。
 
@@ -201,7 +201,7 @@ A5：Gin 最新稳定版路由、BindJSON、StaticFS 语法与当前设计一致
 | AC-28 | rule | `README.md` 顶部存在新手 3 句话设计卡样本（①数据放哪②入口在哪③坑在哪） | 文件内容目视 |
 | AC-29 | rule | 首轮基线 git commit message 结构正确（包含 feat/refund-shop B1 基线 + 9 PASS + 预埋点清单） | `git log --oneline -1` 结果 |
 | AC-30 | rule | `internal/b2bug/` 目录下存在 bug 注入文件（b2-bug 分支），但 main 分支不 import 该包；main 分支 orders 金额校验行为正确（amount=0 400） | 代码目视 + AC-07 验证 |
-| AC-31 | rule | B3 三处坏味道在 main 分支代码中真实存在（Handler 三段式重复 / schema.sql 单文件无版本 / CalcRefundable if-else ≥3 层嵌套 + ≥50 行） | 代码行数统计 + 目视 |
+| AC-31 | rule | B3 三处坏味道在 main 分支代码中真实存在（Handler 三段式重复 / schema.sql 单文件无版本 / CalcRefundable 平铺守卫 20+ 行、多分支早退出） | 代码行数统计 + 目视 |
 
 ### 8.2 Rubric 类（共 5 条，全部达到阈值 ≥2 分才算通过）
 | 编号 | 类型 | 维度 | 分档（0/1/2 分）+ 阈值 | 证据来源 |
