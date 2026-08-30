@@ -43,7 +43,7 @@ Invoke-RestMethod -Uri http://localhost:3000/api/orders -Method Post -Headers $h
 - 地图：`docs/code-map.md` · 速查表：`docs/key-files-quickref.md`
 
 ### B1 需求澄清（b1 分支·已具备）
-- 开始前：`git checkout b1`（本轨道教学现场；3 个模糊点锚在 `refund_rules.go` 顶部 TODO，原始需求话术见 spec 附录-C）。
+- 开始前：`git checkout b1`（本轨道教学现场；4 条需求锚点——3 个模糊点 + 1 个幂等漏项——锚在 `refund_rules.go` 顶部 TODO，原始需求话术见 spec 附录-C）。
 - 六样本：`docs/design-skeleton.md` / `ADR-001` / `implementation-sample-record` / `test-report-b1-base` / `delivery-checklist` / `api-reference`
 
 ### B2 Bug 修复（需切 b2-bug 分支）
