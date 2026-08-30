@@ -13,7 +13,7 @@ flowchart LR
     U1[下单页 index.html] -->|POST /api/orders| R[Gin 路由 internal/routes]
     U2[订单页 orders.html] -->|GET /api/orders · POST /api/refunds| R
     U3[审核页 admin.html] -->|GET /api/refunds · PATCH /approve| R
-    R -->|调用纯函数| D[规则 domain.CalcRefundable]
+    R -->|调用纯函数| D[规则 domain.CalcRemaining]
     R -->|读写 SQL| DB[(SQLite data.db)]
 ```
 
@@ -29,14 +29,14 @@ flowchart LR
 | 装配入口 | `main.go` | 连库、建路由、挂静态 | routes/db/gin |
 | 订单路由 | `internal/routes/orders.go` | 下单/列表/详情 3 端点 | db/gin |
 | 退款路由 | `internal/routes/refunds.go` | 申请/列表/审批 3 端点 | db/gin/domain |
-| 退款规则 | `internal/domain/refund_rules.go` | `CalcRefundable` 算可退金额 | 无（纯函数） |
+| 退款规则 | `internal/domain/refund_rules.go` | `CalcRemaining` 算可退金额 | 无（纯函数） |
 | 建表连接 | `internal/db/db.go` + `schema.sql` | 打开 SQLite + 建两表 | database/sql / modernc |
 
 ## §3. 入口 / 被测对象 / 下游依赖 / 隐藏依赖
 
 - **入口**：`go run .` → `main.go` 第一行。
 - **被测对象**：`orders.go` / `refunds.go`（http 集成测）；`refund_rules.go`（单元测）。
-- **下游依赖**：路由层 → `domain.CalcRefundable`。
+- **下游依赖**：路由层 → `domain.CalcRemaining`。
 - **隐藏依赖**：`schema.sql` 的 CHECK 约束（易被忽略，却会拦截非法数据）。
 
 ## §4. 刻意留给教学的设计点（重要）

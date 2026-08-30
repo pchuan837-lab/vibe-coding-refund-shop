@@ -59,7 +59,7 @@ func createRefund(database *sql.DB) gin.HandlerFunc {
 			"SELECT COALESCE(SUM(amount),0) FROM refunds WHERE order_id = ? AND status='approved'", req.OrderID).
 			Scan(&totalRefunded)
 
-		approved, err := domain.CalcRefundable(req.OrderID, orderAmount, totalRefunded, req.Amount)
+		approved, err := domain.CalcRemaining(req.OrderID, orderAmount, totalRefunded, req.Amount)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "refund rule: " + err.Error()})
 			return

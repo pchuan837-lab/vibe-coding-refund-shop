@@ -61,7 +61,7 @@ main 分支不 import 该包，始终保持正确（amount=0 → 400）。
 ```
 main.go                入口（embed 前端 + 路由挂载）
 internal/routes/       HTTP 层（orders/refunds 6 端点）
-internal/domain/       退款纯函数 CalcRefundable
+internal/domain/       退款纯函数 CalcRemaining
 internal/db/           schema.sql + db.go
 public/                三页前端
 docs/                  教学配套文档（10 份）；阅卷/答案见 solutions 分支

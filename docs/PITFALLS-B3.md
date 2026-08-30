@@ -17,7 +17,7 @@ B3 赛道 = 在**行为完全不变**（API 契约守恒）前提下消除 3 个
 |---|---|---|---|
 | B3-P01 | ① Handler 三段式重复 | `orders.go`/`refunds.go` 多处「ShouldBindJSON→err→400 JSON→return」样板 | 抽取统一错误响应/绑定 helper，且调用处行为逐字节等价 |
 | B3-P02 | ② Schema 单文件两表 | `internal/db/schema.sql` 单文件混写 orders+refunds | 建表 SQL 拆层/分文件/加约束注释，且 `NewDB` 建表结果不变 |
-| B3-P03 | ③ 规则函数超长 if-else | `internal/domain/refund_rules.go` `CalcRefundable` 主流程 | 规则拆成短函数/策略，纯函数语义与分支结果完全一致 |
+| B3-P03 | ③ 规则函数超长 if-else | `internal/domain/refund_rules.go` `CalcRemaining` 主流程 | 规则拆成短函数/策略，纯函数语义与分支结果完全一致 |
 
 ## 二、保真硬指标（行为/契约/测试均不得变）共 9 条
 

@@ -9,17 +9,18 @@
 ---
 
 **判定符号**：✅ 达标 / ⚠ 部分达标 / ❌ 未达标
-B1 赛道 = 需求澄清：读者在「设计」层面为 refund-shop 澄清模糊点并定验收。共 **15 条**：功能类 6 / 过程类 6 / 文档类 3。
+B1 赛道 = 需求澄清：读者在「设计」层面为 refund-shop 澄清模糊点并定验收。共 **15 条**（功能类 6 + 过程类 6 + 文档类 3）；其中 **B1-P01 附设数值判据 B1-P01a**（运费/用券可退上限的确定性判分，属 P01 的强制细化，不计入独立条数）。
 
 ## 一、功能类（理解原始需求 → 澄清 → 定规则）共 6 条
 
 | 条目 | 判定标准（✅ 需满足） | 漏了去哪补线索 |
 |---|---|---|
-| B1-P01 | 把 3 个模糊点(运费退法/用券返法/超额如何处理)明确写进需求，且每点给出「本次采纳的规则」 | `domain/refund_rules.go` 顶部 TODO；`design-skeleton.md` §7 / §6 |
+| B1-P01 | 把 3 个模糊点(运费退法/用券返法/超额如何处理)明确写进需求，且每点给出「本次采纳的规则」；**且运费/用券纳入可退上限的正确性按 → 可退上限 = `amount + shipping − coupon_used`（见 B1-P01a 数值判据）** | `domain/refund_rules.go` 顶部 TODO；`design-skeleton.md` §7 / §6 |
+| B1-P01a | 【数值判据·强制】可退上限必须是 `订单实付 amount + 运费 shipping − 用券抵扣 coupon_used`。判定时逐项核：① 若读者只把上限算成 `amount`（漏了 `shipping` 或漏减 `coupon_used`）→ ❌；② 若读者把 shipping 按"仅全额退才退"或其他比例冲抵而非全额累加 → ❌ 或 ⚠（视其需求文档是否自洽）；③ 正确实现方案 = **调用侧算大 orderAmount 传给 `CalcRemaining`**、函数签名不可改（B3-P07 保真红线）；凡读者改 `CalcRemaining` 签名加 shipping/coupon 参数 → ❌（破坏 B3 保真）。注意：🚩 **若 AI 发现"运费一律不退 / 用券一律不返 / 上限停留 amount"的实现被判达标，即为误判**，须按此条降级 | spec 附录-C ②（可退上限=`amount + shipping − coupon_used` 原话）；`FR-2.1` 订单字段三件套 |
 | B1-P02 | 明确金额单位（分）与换算规则 | `api-reference.md` §三；`README.md` 新手 3 句话行 |
 | B1-P03 | 明确订单状态机 3 态与触发条件 | `refunds.go` `syncOrderStatus`；`schema.sql` status 注释 |
 | B1-P04 | 明确退款状态机 3 态与「只允许 pending 被改」约束 | `refunds.go` approveRefund 校验 |
-| B1-P05 | 明确「可退余额 = 订单实付 - 累计已批」语义 | `CalcRefundable`；`refunds.go` SUM 查询 |
+| B1-P05 | 明确「可退余额 = 订单实付 - 累计已批」语义 | `CalcRemaining`；`refunds.go` SUM 查询 |
 | B1-P06 | 明确并发/重复申请的行为（是否幂等） | `schema.sql` 唯一性；`refunds.go` 累计查询 |
 
 ## 二、过程类（澄清流程 / 验收话说清）共 6 条
