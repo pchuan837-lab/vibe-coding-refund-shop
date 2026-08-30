@@ -43,7 +43,7 @@ flowchart LR
 
 | 位置 | 类型 | 一句话 |
 |---|---|---|
-| `refund_rules.go` 顶部 3 处 TODO | B1① 模糊点 | 运费退法 / 用券返法 / 超额策略 |
+| `refund_rules.go` 顶部 4 处 TODO | B1① 需求锚点 | 运费退法 / 用券返法 / 超额策略 / 幂等兜底 |
 | `orders.go` 下单 amount 边界 | B2 Bug1 | 0 元订单漏洞（b2-bug 分支触发） |
 | `refund_rules.go` remaining 计算行 | B2 Bug2 | 累计退款减数写反（b2-bug 分支触发） |
 | `orders/refunds` 多处 BindJSON 样板 | B3 坏味道 1 | Handler 三段式重复 |

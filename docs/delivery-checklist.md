@@ -7,7 +7,7 @@
 |---|---|---|---|---|
 | 1 | 代码 | `main.go` + `internal/**` + `public/**` | ✅ | 6 路由 + 三页端到端可跑 |
 | 2 | 设计 | `docs/design-skeleton.md` | ✅ | 七段方案（4/5 已预填） |
-| 3 | 测试 | `docs/test-report-b1-base.md` + 各 `*_test.go` | ✅ | 9 测试全绿，覆盖 53.7% |
+| 3 | 测试 | `docs/test-report-b1-base.md` + 各 `*_test.go` | ✅ | 10 测试全绿（domain 7 + routes 3），覆盖 53.7% |
 | 4 | 部署 | `README.md`（3 命令）+ `ADR-001`（选型） | ✅ | 新克隆 3 命令可跑 |
 | 5 | API | `docs/api-reference.md` | ✅ | 6 路由契约 |
 | 6 | CHANGELOG | `CHANGELOG.md` | ✅ | 版本 0.1.0，分类四 |

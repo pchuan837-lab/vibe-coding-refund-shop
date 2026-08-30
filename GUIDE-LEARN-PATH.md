@@ -19,7 +19,7 @@
 ## PART 2 · B1 需求澄清（main 分支已具备）
 - **目标**：把 refund-shop 的模糊点澄清成可验收需求。
 - **输入**：原始需求话术（见 spec 附录-C 或教程给定）。
-- **步骤**① 定位 3 个模糊点（运费退法/用券返法/超额策略）→ ② 写 `design-skeleton.md` 七段 → ③ `ADR-001` → ④ 定每点验收 → ⑤ 分步实现 → ⑥ 复盘。
+- **步骤**① 定位 4 条需求锚点（3 个模糊点 + 1 个幂等漏项：运费退法/用券返法/超额策略/幂等兜底）→ ② 写 `design-skeleton.md` 七段 → ③ `ADR-001` → ④ 定每点验收 → ⑤ 分步实现 → ⑥ 复盘。
 - **完成**：`docs/test-report-b1-base.md` 填上用例与结果。
 - **自检**：AI 用 `docs/PROMPT-AI-REVIEWER.md` 阅卷（答案本 PITFALLS-B1）。
 
@@ -32,7 +32,7 @@
 
 ## PART 4 · B3 重构（行为保真）
 - **目标**：在**契约完全不变**前提下消除 3 个坏味道（Handler 重复样板 / Schema 单文件两表 / 规则超长函数）。
-- **铁律**：`api-reference.md` 与 `*_test.go` **diff 必须为空**；覆盖率不下滑；9 测试全绿。
+- **铁律**：`api-reference.md` 与 `*_test.go` **diff 必须为空**；覆盖率不下滑；10 测试全绿。
 - **流程**：重构→跑 `api-reference diff` 空→`go test` 绿→`go vet` 净→AI 复核保真。
 - **自检**：`docs/PITFALLS-B3.md` + AI-REVIEWER。
 

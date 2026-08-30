@@ -72,10 +72,11 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
   - `remaining = orderAmount - totalRefunded`；`remaining <= 0` 且还要申请 → 返回 `(0, error)`（已全退完）
   - `applyAmount <= remaining` → `approvedAmount = applyAmount`（合法）
   - `applyAmount > remaining` → **首轮默认截断为 remaining 并返回 nil**（具体策略 A：截断 vs B：报错 留 B1 澄清时可改，此处是默认实现）
-- **FR-4.3 模糊点（故意不处理，B1① 读者自己澄清后补）**：
+- **FR-4.3 需求锚点（4 条：3 个模糊点 + 1 个幂等漏项，故意不处理，B1① 读者自己澄清后补）**：
   - TODO ① 运费怎么退？（函数不接收 shipping 参数）
   - TODO ② 用券返不返？（函数不接收 couponUsed 参数）
   - TODO ③ 超额是截断（默认）还是报错？
+  - TODO ④ 重复申请/并发退款怎么兜？（首轮故意不做幂等，无 refund_no 幂等键）
 
 ### 3.5 三页前端（FR-5）
 - **FR-5.1 index.html（下单页）**：表单 4 字段（商品名/金额/运费/用券抵扣）+「下单」按钮 → 提交 fetch POST /api/orders → 成功后 `location.href = '/orders.html'`
@@ -100,10 +101,10 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
 
 ### 3.9 测试骨架（FR-9 · 故意覆盖率 40%-60%，留教学抓手）
 - **FR-9.1 `internal/domain/refund_rules_test.go`**：7 个原生 `testing` 单元用例，对应 Section4 设计的 7 个清晰规则用例表（全额/部分/二次部分/超额截断/申请零元/无效订单/已全退再申请）；全部 PASS
-- **FR-9.2 `internal/routes/orders_route_test.go`**：2 个 `httptest` 集成用例（正常下单成功/金额负数 400）；全部 PASS
+- **FR-9.2 `internal/routes/orders_route_test.go`**：3 个 `httptest` 集成用例（正常下单成功/金额负数 400/金额零 400）；全部 PASS
 - **FR-9.3**：故意**不写**运费/券用例、不写幂等用例、不写 amount=0 用例（留给 B1 澄清后补 / B2 修 Bug 先写失败用例锁 Bug）
 - **FR-9.4**：refund_rules_test.go 底部有一段「注释取消即 FAIL」的示范失败用例 + 提示语（S-B③ 失败分析练习入口）
-- **FR-9.5**：`go test ./...` 执行 domain + routes 两包，退出码 0，PASS 数 = 9。
+- **FR-9.5**：`go test ./...` 执行 domain + routes 两包，退出码 0，PASS 数 = 10（domain 7 + routes 3）。
 
 ### 3.10 教学配套 docs 13 个文件（FR-10 · 首轮必须全部落盘）
 详见附录-D：13 份 docs 文件清单 + 每份职责 + 内容结构要点 + 对齐教程哪节。
@@ -114,7 +115,7 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
 | 编号 | 类型 | 描述 | 指标/阈值 |
 |---|---|---|---|
 | NFR-1 | 启动速度 | `go run .` 冷启动时间 | ≤ 5 秒（Windows 普通硬盘） |
-| NFR-2 | 测试速度 | `go test ./...` 首次全跑时间 | ≤ 10 秒（9 个用例+内存DB） |
+| NFR-2 | 测试速度 | `go test ./...` 首次全跑时间 | ≤ 10 秒（10 个用例+内存DB） |
 | NFR-3 | 内存占用 | 服务空闲时内存 | ≤ 50MB |
 | NFR-4 | 零外置依赖 | 读者跑通三条命令是否需要装 Node/Python/MySQL/gcc | 完全不用；只要求 Go ≥ 1.21 + git |
 | NFR-5 | 数据库零配置 | 启动后数据库是否需要手动建表/建库 | 不需要；NewDB 自动执行 schema.sql |
@@ -167,7 +168,7 @@ A5：Gin 最新稳定版路由、BindJSON、StaticFS 语法与当前设计一致
 | 编号 | 类型 | 可观察通过条件 | 证据来源 |
 |---|---|---|---|
 | AC-01 | rule | `go build ./...` 退出码 0 无输出 | Windows 终端执行结果 |
-| AC-02 | rule | `go test ./...` 输出 `ok  refund-shop/internal/domain` + `ok  refund-shop/internal/routes`；PASS 数 = 9 | 同上 |
+| AC-02 | rule | `go test ./...` 输出 `ok  refund-shop/internal/domain` + `ok  refund-shop/internal/routes`；PASS 数 = 10（domain 7 + routes 3） | 同上 |
 | AC-03 | rule | `go test -cover ./...` 两包算术平均 ∈ [40, 60] | 同上 |
 | AC-04 | rule | `go run .` 启动后另开终端 `curl.exe http://localhost:3000` → 返回 index.html 的 `<title>` 或 `下单` 字样 | curl 结果 |
 | AC-05 | rule | curl POST 正常订单（amount=9900）→ HTTP 200 + JSON 含 `id` int | curl 结果 |
@@ -177,7 +178,7 @@ A5：Gin 最新稳定版路由、BindJSON、StaticFS 语法与当前设计一致
 | AC-09 | rule | 下单 100 分 → 退 50 分 → PATCH approved=true → order.status = partial_refunded | DB 查询：`sqlite3 data.db "SELECT status FROM orders WHERE id=1"` |
 | AC-10 | rule | 累计退 100 后 order.status = fully_refunded；再申请退 1 → CalcRefundable 返回 err 或 0 无法批准 | DB 查询 + curl 结果 |
 | AC-11 | rule | 5 步 curl 冒烟（Section5 已列）每一步都得预期 HTTP 状态码 | 人工执行结果 + 截图 |
-| AC-12 | rule | `refund_rules.go` 顶部存在 ≥ 3 行 `// TODO` 注释，明确列出 3 处模糊点（运费/券/超额策略） | 代码目视检查 |
+| AC-12 | rule | `refund_rules.go` 顶部存在 ≥ 4 行 `// TODO` 注释，明确列出 4 条锚点（运费/券/超额策略 + 幂等漏项） | 代码目视检查 |
 | AC-13 | rule | `refunds` 表结构无 shipping_refund 列、无 coupon_return 列；幂等键列无（B1 读者补前） | `sqlite3 .schema refunds` |
 | AC-14 | rule | `go.mod` `require` 段只有 gin + modernc/sqlite 两行（传递依赖不计） | go.mod 目视 |
 | AC-15 | rule | `NewDB(":memory:")` 返回 db 无 error；立刻执行 `SELECT name FROM sqlite_master WHERE type='table'` → 返回 orders + refunds 两行 | 单元测试内部验证（db_test.go 可选或集成测验证） |
@@ -203,7 +204,7 @@ A5：Gin 最新稳定版路由、BindJSON、StaticFS 语法与当前设计一致
 |---|---|---|---|---|
 | RAC-01 | rubric | 「教学可观测性」：新手打开项目后 10 分钟内能否定位到「入口文件 + 规则文件 + 两个路由文件 + DB 文件」共 5 个核心文件 | 0=20 分钟还没找到 3 个以上；1=10-20 分钟找到 4 个；2=≤10 分钟找到全部 5 个。阈值=2 分 | 让 1 个不熟悉项目的人计时实测 |
 | RAC-02 | rubric | 「S-A 简化版对齐」：`docs/code-map.md` 六板块（架构/模块/入口/数据/依赖/风险）+ `key-files-quickref.md` 4 列速查表是否完整对得上实际代码 | 0=两块文档各缺 2 板块/列以上；1=缺 1 块；2=全对得上。阈值=2 分 | 手动对照代码逐条核对 |
-| RAC-03 | rubric | 「B1 练习摩擦」：B1 读者从打开 README 到写出「澄清 3 处模糊点的 TODO 记录」所需总步骤数是否 ≤ 5（不用来回翻教程正文找素材） | 0=≥9 步；1=6-8 步；2=≤5 步（refund_rules.go 顶部已贴小美原话 + 3 TODO，读者照着填就行）。阈值=2 分 | 让新手模拟走一遍计时 |
+| RAC-03 | rubric | 「B1 练习摩擦」：B1 读者从打开 README 到写出「澄清 4 条锚点的 TODO 记录」所需总步骤数是否 ≤ 5（不用来回翻教程正文找素材） | 0=≥9 步；1=6-8 步；2=≤5 步（refund_rules.go 顶部已贴小美原话 + 4 TODO，读者照着填就行）。阈值=2 分 | 让新手模拟走一遍计时 |
 | RAC-04 | rubric | 「AI 阅卷有效性」：把首轮骨架代码 + PITFALLS-B1 喂给 AI 审核员，AI 能否正确识别出「幂等（B1-P04）= ❌；运费/券（B1-P01/P02）= ❌」至少 2 条遗漏，且不泄题（不直接给行号/根因） | 0=全漏或泄题；1=只命中 1 条或有泄题风险；2=命中 ≥2 条且全程无泄题。阈值=2 分 | 实际跑一次 AI 阅卷流程看输出 |
 | RAC-05 | rubric | 「B3 重构可操作性」：读者打开 B3 坏味道行号锚定 + PITFALLS-B3 停止条件后，能否 30 分钟内拆完坏味道 1（Handler 样板抽公共 helper）并保持 go test 全绿 | 0=1 小时还没拆完或测试崩；1=30-60 分钟完成；2=≤30 分钟完成且全绿。阈值=2 分 | 新手模拟实操 |
 

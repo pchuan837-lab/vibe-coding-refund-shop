@@ -46,7 +46,7 @@
 ### 5. 接口定义（已预填，6 条）
 | 方法 | 路径 | 请求体 | 响应 |
 |---|---|---|---|
-| POST | /api/orders | {product_name,amount,shipping,coupon_used} | 别改 | Order |
+| POST | /api/orders | {product_name,amount,shipping,coupon_used} | Order |
 | GET | /api/orders | - | 全量订单 |
 | GET | /api/orders/:id | - | Order（含已关联 refunds） |
 | POST | /api/refunds | {order_id,amount,reason} | Refund |
