@@ -40,7 +40,9 @@ A. **「教学模糊点」 vs 「Bug」**
    - 模糊点 = 功能未定义但不 crash（如 `CalcRefundable` 不处理运费/券，调用方不传不报错，只是业务上"没覆盖这种情况"，是 B1 读者澄清后要补的）
    - Bug = 功能已明确定义但实现错（如 orders 金额 <0 仍能创建，明确违反金额必须正的契约，是 B2 读者要修的）
 
-B. **「覆盖率 40~60%」** = `go test -cover ./...` 输出的 domain + routes 两个包的算术平均值落在 [40, 60] 区间内；<40% 说明骨架太虚需重补，>60% 说明练习空间被挤占需减非核心用例。
+B. **「覆盖率教学区间」** = `go test -cover ./...` 分包观察：
+   - `internal/routes`（接口集成层）覆盖率落在 **[40, 60]%** 区间内（教学抓手：<40% 说明骨架太虚需重补，>60% 说明非核心用例过挤可减）；当前 51.2%。
+   - `internal/domain`（规则纯函数层）因业务规则聚焦，允许**更高**（当前 85.7%），70% 上下属正常，不按 [40,60] 硬卡。
 
 C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`GET /api/orders/:id`、`POST/GET /api/refunds`、`PATCH /api/refunds/:id/approve`）的：
    - HTTP 方法 & URL 路径 & 查询参数名
@@ -100,12 +102,12 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
 - **FR-8.2 坏味道 2：Schema 混写** → 两表 DDL 全塞一个 `schema.sql`，无版本号、无迁移状态表；读者重构时拆成 `migrations/001_create_orders.sql` + `002_create_refunds.sql` 两个独立文件（2A 方案，纯手写不引 goose）+ 简单 schema_version 机制
 - **FR-8.3 坏味道 3：规则堆 if-else** → `CalcRefundable` 单函数实现用嵌套 if-else 堆，函数 >50 行；读者重构时拆策略模式接口 + 多个 struct 或拆小函数；**停止条件（任一）**：策略模式每个 struct≤30 行；或主函数≤20 行只编排调用。
 
-### 3.9 测试骨架（FR-9 · 故意覆盖率 40%-60%，留教学抓手）
-- **FR-9.1 `internal/domain/refund_rules_test.go`**：7 个原生 `testing` 单元用例，对应 Section4 设计的 7 个清晰规则用例表（全额/部分/二次部分/超额截断/申请零元/无效订单/已全退再申请）；全部 PASS
-- **FR-9.2 `internal/routes/orders_route_test.go`**：2 个 `httptest` 集成用例（正常下单成功/金额负数 400）；全部 PASS
+### 3.9 测试骨架（FR-9 · 覆盖率分包教学区间，留教学抓手）
+- **FR-9.1 `internal/domain/refund_rules_test.go`**：8 个原生 `testing` 单元用例，对应 Section4 设计的清晰规则用例（全额/部分/二次部分/超额截断/申请零元/无效订单/已全退再申请 + 1 个示范/边界）；全部 PASS
+- **FR-9.2 `internal/routes/`**：`orders_route_test.go`（3 个）+ `refunds_route_test.go`（5 个）共 8 个 `httptest` 集成用例（下订单正常/金额边界、退款申请/审批/金额校验等）；全部 PASS
 - **FR-9.3**：故意**不写**运费/券用例、不写幂等用例、不写 amount=0 用例（留给 B1 澄清后补 / B2 修 Bug 先写失败用例锁 Bug）
 - **FR-9.4**：refund_rules_test.go 底部有一段「注释取消即 FAIL」的示范失败用例 + 提示语（S-B③ 失败分析练习入口）
-- **FR-9.5**：`go test ./...` 执行 domain + routes 两包，退出码 0，PASS 数 = 9。
+- **FR-9.5**：`go test ./...` 执行 domain + routes 两包，退出码 0，PASS 数 = 16（domain 8 + routes 8）。
 
 ### 3.10 教学配套 docs 13 个文件（FR-10 · 首轮必须全部落盘）
 详见附录-D：13 份 docs 文件清单 + 每份职责 + 内容结构要点 + 对齐教程哪节。
@@ -116,7 +118,7 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
 | 编号 | 类型 | 描述 | 指标/阈值 |
 |---|---|---|---|
 | NFR-1 | 启动速度 | `go run .` 冷启动时间 | ≤ 5 秒（Windows 普通硬盘） |
-| NFR-2 | 测试速度 | `go test ./...` 首次全跑时间 | ≤ 10 秒（9 个用例+内存DB） |
+| NFR-2 | 测试速度 | `go test ./...` 首次全跑时间 | ≤ 10 秒（16 个用例+内存DB） |
 | NFR-3 | 内存占用 | 服务空闲时内存 | ≤ 50MB |
 | NFR-4 | 零外置依赖 | 读者跑通三条命令是否需要装 Node/Python/MySQL/gcc | 完全不用；只要求 Go ≥ 1.21 + git |
 | NFR-5 | 数据库零配置 | 启动后数据库是否需要手动建表/建库 | 不需要；NewDB 自动执行 schema.sql |
@@ -169,8 +171,8 @@ A5：Gin 最新稳定版路由、BindJSON、StaticFS 语法与当前设计一致
 | 编号 | 类型 | 可观察通过条件 | 证据来源 |
 |---|---|---|---|
 | AC-01 | rule | `go build ./...` 退出码 0 无输出 | Windows 终端执行结果 |
-| AC-02 | rule | `go test ./...` 输出 `ok  refund-shop/internal/domain` + `ok  refund-shop/internal/routes`；PASS 数 = 9 | 同上 |
-| AC-03 | rule | `go test -cover ./...` 两包算术平均 ∈ [40, 60] | 同上 |
+| AC-02 | rule | `go test ./...` 输出 `ok  refund-shop/internal/domain` + `ok  refund-shop/internal/routes`；PASS 数 = 16（domain 8 + routes 8） | 同上 |
+| AC-03 | rule | `go test -cover ./...` 改分包区间：routes 包 ∈ [40, 60]（当前 51.2%）；domain 包不设上限（当前 85.7%） | 同上 |
 | AC-04 | rule | `go run .` 启动后另开终端 `curl.exe http://localhost:3000` → 返回 index.html 的 `<title>` 或 `下单` 字样 | curl 结果 |
 | AC-05 | rule | curl POST 正常订单（amount=9900）→ HTTP 200 + JSON 含 `id` int | curl 结果 |
 | AC-06 | rule | curl POST amount=-1 → HTTP 400 + JSON 含 `error` 字段 | curl 结果 |
