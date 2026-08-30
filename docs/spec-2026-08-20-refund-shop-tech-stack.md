@@ -76,10 +76,11 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
   - `remaining = orderAmount - totalRefunded`；`remaining <= 0` 且还要申请 → 返回 `(0, error)`（已全退完）
   - `applyAmount <= remaining` → `approvedAmount = applyAmount`（合法）
   - `applyAmount > remaining` → **首轮默认截断为 remaining 并返回 nil**（具体策略 A：截断 vs B：报错 留 B1 澄清时可改，此处是默认实现）
-- **FR-4.3 模糊点（故意不处理，B1① 读者自己澄清后补）**：
+- **FR-4.3 需求锚点（4 条：3 个模糊点 + 1 个幂等漏项，故意不处理，B1① 读者自己澄清后补）**：
   - TODO ① 运费怎么退？（函数不接收 shipping 参数）
   - TODO ② 用券返不返？（函数不接收 couponUsed 参数）
   - TODO ③ 超额是截断（默认）还是报错？
+  - TODO ④ 重复申请/并发退款怎么兜？（首轮故意不做幂等，无 refund_no 幂等键）
 
 ### 3.5 三页前端（FR-5）
 - **FR-5.1 index.html（下单页）**：表单 4 字段（商品名/金额/运费/用券抵扣）+「下单」按钮 → 提交 fetch POST /api/orders → 成功后 `location.href = '/orders.html'`
@@ -103,11 +104,11 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
 - **FR-8.3 坏味道 3：规则堆 if-else** → `CalcRefundable` 单函数实现用嵌套 if-else 堆，函数 >50 行；读者重构时拆策略模式接口 + 多个 struct 或拆小函数；**停止条件（任一）**：策略模式每个 struct≤30 行；或主函数≤20 行只编排调用。
 
 ### 3.9 测试骨架（FR-9 · 覆盖率分包教学区间，留教学抓手）
-- **FR-9.1 `internal/domain/refund_rules_test.go`**：8 个原生 `testing` 单元用例，对应 Section4 设计的清晰规则用例（全额/部分/二次部分/超额截断/申请零元/无效订单/已全退再申请 + 1 个示范/边界）；全部 PASS
+- **FR-9.1 `internal/domain/refund_rules_test.go`**：7 个可运行原生 `testing` 单元用例，对应 Section4 设计的清晰规则用例（全额/部分/二次部分/超额截断/申请零元/无效订单/已全退再申请）+ 底部 1 条注释示范（不参与编译，供 S-B③ 失败分析练习）；全部 PASS
 - **FR-9.2 `internal/routes/`**：`orders_route_test.go`（3 个）+ `refunds_route_test.go`（5 个）共 8 个 `httptest` 集成用例（下订单正常/金额边界、退款申请/审批/金额校验等）；全部 PASS
 - **FR-9.3**：故意**不写**运费/券用例、不写幂等用例、不写 amount=0 用例（留给 B1 澄清后补 / B2 修 Bug 先写失败用例锁 Bug）
 - **FR-9.4**：refund_rules_test.go 底部有一段「注释取消即 FAIL」的示范失败用例 + 提示语（S-B③ 失败分析练习入口）
-- **FR-9.5**：`go test ./...` 执行 domain + routes 两包，退出码 0，PASS 数 = 16（domain 8 + routes 8）。
+- **FR-9.5**：`go test ./...` 执行 domain + routes 两包，退出码 0，PASS 数 = 15（domain 7 + routes 8；domain 另有 1 条注释示范不参与编译）。
 
 ### 3.10 教学配套 docs 13 个文件（FR-10 · 首轮必须全部落盘）
 详见附录-D：13 份 docs 文件清单 + 每份职责 + 内容结构要点 + 对齐教程哪节。
@@ -118,7 +119,7 @@ C. **B3 重构「API 不许改」** = 六条路由（`POST/GET /api/orders`、`G
 | 编号 | 类型 | 描述 | 指标/阈值 |
 |---|---|---|---|
 | NFR-1 | 启动速度 | `go run .` 冷启动时间 | ≤ 5 秒（Windows 普通硬盘） |
-| NFR-2 | 测试速度 | `go test ./...` 首次全跑时间 | ≤ 10 秒（16 个用例+内存DB） |
+| NFR-2 | 测试速度 | `go test ./...` 首次全跑时间 | ≤ 10 秒（15 个可运行用例+内存DB） |
 | NFR-3 | 内存占用 | 服务空闲时内存 | ≤ 50MB |
 | NFR-4 | 零外置依赖 | 读者跑通三条命令是否需要装 Node/Python/MySQL/gcc | 完全不用；只要求 Go ≥ 1.21 + git |
 | NFR-5 | 数据库零配置 | 启动后数据库是否需要手动建表/建库 | 不需要；NewDB 自动执行 schema.sql |
@@ -171,7 +172,7 @@ A5：Gin 最新稳定版路由、BindJSON、StaticFS 语法与当前设计一致
 | 编号 | 类型 | 可观察通过条件 | 证据来源 |
 |---|---|---|---|
 | AC-01 | rule | `go build ./...` 退出码 0 无输出 | Windows 终端执行结果 |
-| AC-02 | rule | `go test ./...` 输出 `ok  refund-shop/internal/domain` + `ok  refund-shop/internal/routes`；PASS 数 = 16（domain 8 + routes 8） | 同上 |
+| AC-02 | rule | `go test ./...` 输出 `ok  refund-shop/internal/domain` + `ok  refund-shop/internal/routes`；PASS 数 = 15（domain 7 + routes 8） | 同上 |
 | AC-03 | rule | `go test -cover ./...` 改分包区间：routes 包 ∈ [40, 60]（当前 51.2%）；domain 包不设上限（当前 85.7%） | 同上 |
 | AC-04 | rule | `go run .` 启动后另开终端 `curl.exe http://localhost:3000` → 返回 index.html 的 `<title>` 或 `下单` 字样 | curl 结果 |
 | AC-05 | rule | curl POST 正常订单（amount=9900）→ HTTP 200 + JSON 含 `id` int | curl 结果 |
@@ -181,7 +182,7 @@ A5：Gin 最新稳定版路由、BindJSON、StaticFS 语法与当前设计一致
 | AC-09 | rule | 下单 100 分 → 退 50 分 → PATCH approved=true → order.status = partial_refunded | DB 查询：`sqlite3 data.db "SELECT status FROM orders WHERE id=1"` |
 | AC-10 | rule | 累计退 100 后 order.status = fully_refunded；再申请退 1 → CalcRefundable 返回 err 或 0 无法批准 | DB 查询 + curl 结果 |
 | AC-11 | rule | 5 步 curl 冒烟（Section5 已列）每一步都得预期 HTTP 状态码 | 人工执行结果 + 截图 |
-| AC-12 | rule | `refund_rules.go` 顶部存在 ≥ 3 行 `// TODO` 注释，明确列出 3 处模糊点（运费/券/超额策略） | 代码目视检查 |
+| AC-12 | rule | `refund_rules.go` 顶部存在 ≥ 4 行 `// TODO` 注释，明确列出 4 条锚点（运费/券/超额策略 + 幂等漏项） | 代码目视检查 |
 | AC-13 | rule | `refunds` 表结构无 shipping_refund 列、无 coupon_return 列；幂等键列无（B1 读者补前） | `sqlite3 .schema refunds` |
 | AC-14 | rule | `go.mod` `require` 段只有 gin + modernc/sqlite 两行（传递依赖不计） | go.mod 目视 |
 | AC-15 | rule | `NewDB(":memory:")` 返回 db 无 error；立刻执行 `SELECT name FROM sqlite_master WHERE type='table'` → 返回 orders + refunds 两行 | 单元测试内部验证（db_test.go 可选或集成测验证） |
@@ -250,7 +251,7 @@ CREATE TABLE IF NOT EXISTS refunds (
 ---
 
 ## 附录-C：三轨道场景 & 原始需求话术（与 Section 2b 一致，作为读者练习输入）
-### C-1 B1 话术·小美（需求澄清用，3 处模糊点 → 对齐 `internal/domain/refund_rules.go` 顶部 3 条 TODO）
+### C-1 B1 话术·小美（需求澄清用，4 条锚点 → 对齐 `internal/domain/refund_rules.go` 顶部 4 条 TODO）
 
 > 【客服 · 小美 09:12】嗨～我们线上售后这两天出了 3 件卡单的事，老板让我把「怎么退」写清楚，拜托你们后端按这版落地一下哈 🙏
 >
@@ -262,6 +263,12 @@ CREATE TABLE IF NOT EXISTS refunds (
 >   - **A（策略 A · 系统自动封顶）**：申请多了就按剩余可退的批，不报错；
 >   - **B（策略 B · 直接报错驳回）**：申请多了直接 400 打回，让顾客改金额重新申请。
 >   *（TODO-③ 对应 refund_rules.go 顶部第 3 条：超额策略，A/B 二选一）*
+>
+> ④ **同一订单重复申请 / 并发退款怎么兜？** 顾客手滑连点两下「申请」，或者审批期间又重复提交，可能同一笔可退余额被退两次。这个我们线上还没兜，漏项要你拍板三选一：
+>   - **A（加幂等键）**：`refunds` 表加 `refund_no` 唯一键，重复单号直接 400 拦掉，从根上防；
+>   - **B（事务内兜底）**：不建唯一键，靠「可退余额 < 0」在事务内兜底拒绝第二笔；
+>   - **C（不处理）**：首轮不管，漏项先留着，后续再补。
+>   *（TODO-④ 对应 refund_rules.go 顶部第 4 条：重复申请/并发退款怎么兜，A/B/C 三选一）*
 >
 > 另外麻烦把「状态流转」一起定掉：没退过就是 `paid` → 退了一部分就变 `partial_refunded` → 退到上限就变 `fully_refunded`，一旦 `fully_refunded` 再申请一律拒绝哈。谢谢你们！🙇‍♀️
 

@@ -8,7 +8,7 @@
 - 三页前端（下单页 / 订单页 / 审核页），由 `main.go` `go:embed` 打包，单进程起全栈。
 - SQLite 持久化（`orders` / `refunds` 两表 + CHECK 约束）。
 - 退款纯函数 `CalcRemaining`（用量分制）。
-- 测试 16 条（`internal/domain` 8 + `internal/routes` 8），分包覆盖率：domain 85.7%、routes 51.2%。
+- 测试 15 条（`internal/domain` 7 + `internal/routes` 8，另含 1 条注释示范不参与编译），分包覆盖率：domain 85.7%、routes 51.2%。
 - 教学配套文档 14 份（spec + code-map/key-files/B1 六样本/阅卷四件套/PROMPT/CHECKLIST 等）。
 
 ### 修复
