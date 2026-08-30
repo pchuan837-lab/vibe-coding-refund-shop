@@ -12,7 +12,7 @@
 - 教学配套文档 14 份（spec + code-map/key-files/B1 六样本/阅卷四件套/PROMPT/CHECKLIST 等）。
 
 ### 修复
-- （本版本为教学基线，B2 预埋 Bug 不在此修——见 `docs/PITFALLS-B2.md`，需切 b2-bug 分支练习后修复。）
+- （本版本为教学基线，B2 预埋 Bug 不在此修——需切 b2-bug 分支练习后修复；完成后可切 solutions 分支自查。）
 
 ### 变更
 - 技术栈由 Node/Express/better-sqlite3 调整为 Go/Gin/modernc.org/sqlite（详见 `docs/ADR-001-tech-stack.md`）。
