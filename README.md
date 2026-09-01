@@ -2,6 +2,8 @@
 
 > 《Vibe Coding 工程化》教程的配套教学项目：用最少的命令跑起来的全栈 Web，用于对照练习 **S-A / B1/B2/B3 / S-B/S-C** 三章工作流。
 > 
+> **教程在线阅读**：[《Vibe Coding 工程化》手册](https://pchuan837-lab.github.io/vibe-coding-engineering/index.html)（GitHub Pages 托管） · **教程源码仓**：[vibe-coding-engineering](https://github.com/pchuan837-lab/vibe-coding-engineering)
+>
 > **源码位置**：本仓库（`refund-shop`）`main` 分支即教学基线代码；B1 练习切 `b1`、B2 练习切 `b2-bug`、B3 练习切 `main`（已修复基线）、答案对照切 `solutions`；历史分支 `b3` 已废弃/保留参考、勿用于练习（详见下方「三条练习轨道入口」）。
 
 ## 新手 3 句话设计卡
