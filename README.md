@@ -2,7 +2,7 @@
 
 > 《Vibe Coding 工程化》教程的配套教学项目：用最少的命令跑起来的全栈 Web，用于对照练习 **S-A / B1/B2/B3 / S-B/S-C** 三章工作流。
 > 
-> **源码位置**：本仓库（`refund-shop`）`main` 分支即教学基线代码；B1 练习切 `b1`、B2 练习切 `b2-bug`、B3 练习切 `main`（已修复基线）、答案对照切 `solutions`；历史分支 `b3` 已废弃/保留参考、勿用于练习（详见下方「三条练习轨道入口」）。
+> **源码位置**：本仓库（`refund-shop`）`main` 分支即教学基线代码；B1 练习切 `b1`、B2 练习切 `b2-bug`、B3 练习切 `b3`、答案对照切 `solutions`（详见下方「三条练习轨道入口」）。
 
 ## 新手 3 句话设计卡
 - **数据放哪** → SQLite（`internal/db/schema.sql` 建表 + `internal/db/db.go` 连库）。
@@ -54,8 +54,8 @@ git checkout b2-bug
 `b2-bug` 是**公开教学分支**，相对 main 只新增 `internal/b2bug/` 注入包，预埋 2 个可复现 Bug；
 main 分支不 import 该包，始终保持正确（amount=0 → 400）。
 
-### B3 重构（行为保真，消除坏味道，切 main 分支练习）
-- 开始前：`git checkout main`（`b3` 分支已废弃/保留参考、勿用于 B3 练习）。
+### B3 重构（行为保真，消除坏味道，切 b3 分支练习）
+- 开始前：`git checkout b3`（本轨道教学现场）。
 - 坏味道锚点注释已在 `internal/routes/*.go`、`internal/db/schema.sql`、`refund_rules.go` 标注。
 
 ### 阅卷 / 查漏（练习后，切 solutions 分支）

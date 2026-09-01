@@ -32,8 +32,8 @@
 - **自检**：切到 `solutions` 分支后，用 `docs/PROMPT-AI-REVIEWER.md` 让 AI 按标准阅卷自查。
 - **完成后必做**：在 b2-bug 分支跑 `go test ./...` 全绿 → 对比 `solutions` 分支公开答案自查（`git checkout solutions`）。
 
-## PART 4 · B3 重构（行为保真，切 main 分支练习）
-- **开始前**：git checkout main（B3 的坏味道锚点在已修复基线 main 分支；b3 分支已废弃/保留参考、勿用于 B3 练习）。
+## PART 4 · B3 重构（行为保真，切 b3 分支练习）
+- **开始前**：git checkout b3（本轨道教学现场；B3 的 3 个坏味道锚点——Handler 重复样板 / Schema 单文件两表 / 规则超长函数——标注在 b3 分支 `internal/routes/*.go`、`internal/db/*`、`refund_rules.go`）。
 - **目标**：在**契约完全不变**前提下消除 3 个坏味道（Handler 重复样板 / Schema 单文件两表 / 规则超长函数）。
 - **铁律**：`api-reference.md` 与 `*_test.go` **diff 必须为空**；覆盖率不下滑；15 测试全绿（domain 7 + routes 8，见 `docs/test-report-b1-base.md`）。
 - **流程**：重构→跑 `api-reference diff` 空→`go test` 绿→`go vet` 净→AI 复核保真。
